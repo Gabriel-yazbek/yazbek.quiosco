@@ -38,7 +38,6 @@
   <canvas id="overlay"></canvas>
 
   <script>
-    // Firebase setup
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
@@ -53,8 +52,9 @@
     let facePresent = false;
     let lastFaceTime = Date.now();
     let qrScanned = false;
+    let reloadTriggered = false;  // Prevent multiple reloads
 
-    // Listen to qrScanned flag, show/hide green box accordingly
+    // Listen to qrScanned flag
     db.ref("/estado/qrScanned").on("value", snapshot => {
       qrScanned = snapshot.val() === true;
       if (qrScanned) {
@@ -65,14 +65,18 @@
     });
 
     async function setupCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-      video.srcObject = stream;
-      return new Promise(resolve => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve();
-        };
-      });
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        video.srcObject = stream;
+        return new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            video.play();
+            resolve();
+          };
+        });
+      } catch (e) {
+        console.error("Camera access error:", e);
+      }
     }
 
     async function start() {
@@ -97,13 +101,15 @@
         if (detections.length > 0) {
           facePresent = true;
           lastFaceTime = Date.now();
+          reloadTriggered = false;  // reset reload flag if face returns
         } else {
-          if (facePresent && Date.now() - lastFaceTime > 2500) {
+          if (facePresent && Date.now() - lastFaceTime > 2500 && !reloadTriggered) {
             facePresent = false;
-            // Reset qrScanned flag and reload page when user leaves
-            if(qrScanned) {
+            reloadTriggered = true;
+            if (qrScanned) {
               db.ref("/estado/qrScanned").set(false);
             }
+            messageBox.style.display = 'none';
             location.reload();
           }
         }
