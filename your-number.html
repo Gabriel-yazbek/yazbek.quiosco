@@ -1,49 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>Tu número es</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+  <meta charset="UTF-8">
+  <title>Tu número</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     body {
+      margin: 0;
       font-family: sans-serif;
-      text-align: center;
-      padding: 2rem;
-      font-size: 2.5rem;
-      background: #f7f9fc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: white;
     }
-    #num {
-      font-size: 4rem;
-      color: #3366cc;
+    #number {
+      font-size: 3rem;
+      font-weight: bold;
+    }
+    #message {
+      margin-top: 1rem;
+      background: #a0f0a0;
+      padding: 1rem 2rem;
+      border-radius: 10px;
+      font-size: 1.2rem;
     }
   </style>
 </head>
 <body>
-  <h1>Tu número es:</h1>
-  <div id="num"> </div>
+  <div id="number">Tu número es: <span id="count">...</span></div>
+  <div id="message">¡Gracias, envíe el formulario para continuar!</div>
 
   <script>
-  
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const countEl = document.getElementById('count');
 
-    const numEl = document.getElementById("num");
-
-    db.ref("queue").transaction(current => {
-      return (current || 0) + 1;
-    }).then(result => {
-      if (result.committed) {
-        numEl.textContent = result.snapshot.val();
-      } else {
-        numEl.textContent = "Error";
-      }
-    }).catch(err => {
-      numEl.textContent = "Error loading number.";
-      console.error(err);
+    // Read current number, increment, write back
+    db.ref("/contador/valor").once("value").then(snapshot => {
+      let current = snapshot.val() || 0;
+      let next = current + 1;
+      countEl.textContent = next;
+      db.ref("/contador/valor").set(next);
     });
   </script>
 </body>
