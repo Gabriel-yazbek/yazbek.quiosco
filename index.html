@@ -103,7 +103,7 @@
           lastFaceTime = Date.now();
           reloadTriggered = false;  // reset reload flag if face returns
         } else {
-          if (facePresent && Date.now() - lastFaceTime > 2500 && !reloadTriggered) {
+          if (facePresent && Date.now() - lastFaceTime > 1500 && !reloadTriggered) {
             facePresent = false;
             reloadTriggered = true;
             if (qrScanned) {
