@@ -4,62 +4,87 @@
   <meta charset="UTF-8" />
   <title>Formulario de Quiosco</title>
   <style>
-    body {
-      font-family: sans-serif;
+    html, body {
       margin: 0;
-      background-color: #f9f9f9;
+      height: 100%;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
     }
     iframe {
-      width: 100%;
+      width: 100vw;
       height: 100vh;
       border: none;
       display: block;
     }
-    video {
+    video#video {
       display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 320px;
+      height: 240px;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 1000;
     }
   </style>
 </head>
 <body>
 
-  <!-- Embedded Google Form -->
+  <!-- Your Google Form embedded -->
   <iframe
     src="https://docs.google.com/forms/d/e/1FAIpQLSfVGApM9zD-lNbuj08TmdPCl8KfPws1LvzWC-Cqb_3YH67_mQ/viewform?embedded=true"
     frameborder="0"
     marginheight="0"
     marginwidth="0"
-  >
-    Cargando…
-  </iframe>
+    allowfullscreen
+  >Cargando…</iframe>
 
-  <!-- Hidden camera for face detection -->
-  <video id="video" autoplay muted playsinline width="300" height="225"></video>
+  <!-- Hidden video for face detection -->
+  <video id="video" autoplay muted playsinline></video>
 
-  <!-- Face detection script -->
+  <!-- Load face-api.js -->
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script>
     const video = document.getElementById('video');
-    let lastSeen = Date.now();
+    let lastFaceTime = Date.now();
 
-    Promise.all([
-      faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
-    ]).then(startVideo);
-
-    function startVideo() {
-      navigator.mediaDevices.getUserMedia({ video: {} })
-        .then(stream => { video.srcObject = stream; })
-        .catch(err => console.error('Error accessing camera:', err));
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        await video.play();
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+      }
     }
 
-    setInterval(async () => {
-      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
-      if (detections.length > 0) {
-        lastSeen = Date.now();
-      } else if (Date.now() - lastSeen > 2500) {
+    async function loadModels() {
+      // Load Tiny Face Detector model from CDN
+      await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights');
+    }
+
+    async function detectFace() {
+      const options = new faceapi.TinyFaceDetectorOptions();
+      const result = await faceapi.detectAllFaces(video, options);
+
+      if (result.length > 0) {
+        lastFaceTime = Date.now();
+      } else if (Date.now() - lastFaceTime > 2500) {
         location.reload();
       }
-    }, 300);
-  </script>
+    }
 
+    async function main() {
+      await loadModels();
+      await setupCamera();
+
+      // Run face detection every 300ms
+      setInterval(detectFace, 300);
+    }
+
+    main();
+  </script>
 </body>
 </html>
