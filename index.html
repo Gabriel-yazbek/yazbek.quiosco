@@ -6,15 +6,14 @@
   <style>
     body {
       font-family: sans-serif;
-      text-align: center;
-      padding: 1rem;
       margin: 0;
       background-color: #f9f9f9;
     }
     iframe {
       width: 100%;
-      height: 90vh;
+      height: 100vh;
       border: none;
+      display: block;
     }
     video {
       display: none;
@@ -22,7 +21,6 @@
   </style>
 </head>
 <body>
-  <h1>Bienvenido</h1>
 
   <!-- Embedded Google Form -->
   <iframe
@@ -42,9 +40,7 @@
   <script>
     const video = document.getElementById('video');
     let lastSeen = Date.now();
-    let hasFace = false;
 
-    // Load face-api.js model
     Promise.all([
       faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights'),
     ]).then(startVideo);
@@ -58,16 +54,12 @@
     setInterval(async () => {
       const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
       if (detections.length > 0) {
-        hasFace = true;
         lastSeen = Date.now();
-      } else {
-        hasFace = false;
-      }
-
-      if (!hasFace && Date.now() - lastSeen > 2500) {
+      } else if (Date.now() - lastSeen > 2500) {
         location.reload();
       }
     }, 300);
   </script>
+
 </body>
 </html>
