@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Camera Test</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+  <video id="video" autoplay muted playsinline style="width: 300px;"></video>
+  <script>
+    async function runTest() {
+      console.log("Starting camera test...");
+
+      // Camera setup
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+        console.log("Camera stream started");
+        await new Promise(resolve => video.onloadedmetadata = resolve);
+      } catch (err) {
+        console.error("Camera error:", err);
+        alert("Failed to start camera.");
+        return;
+      }
+
+      // Load model
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+        console.log("Face model loaded");
+      } catch (err) {
+        console.error("Model load error:", err);
+        alert("Failed to load face detection model.");
+        return;
+      }
+
+      // Start detection loop
+      const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224 });
+      setInterval(async () => {
+        const detections = await faceapi.detectAllFaces(video, options);
+        console.log("Detected faces:", detections.length);
+      }, 1000);
+    }
+
+    runTest();
+  </script>
+</body>
+</html>
