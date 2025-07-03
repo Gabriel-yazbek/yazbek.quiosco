@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Tu número</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
@@ -16,16 +17,22 @@
       height: 100vh;
       background: white;
     }
+
     #number {
-      font-size: 3rem;
+      font-size: 3.5rem;
       font-weight: bold;
+      color: #333;
     }
+
     #message {
       margin-top: 1rem;
-      background: #a0f0a0;
-      padding: 1rem 2rem;
-      border-radius: 10px;
-      font-size: 1.2rem;
+      background: #28c76f;
+      padding: 2rem 3rem;
+      border-radius: 15px;
+      font-size: 2rem;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
     }
   </style>
 </head>
@@ -40,13 +47,22 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const countEl = document.getElementById('count');
+    const messageBox = document.getElementById('message');
 
-    // Read current number, increment, write back
+    // Increment counter
     db.ref("/contador/valor").once("value").then(snapshot => {
       let current = snapshot.val() || 0;
       let next = current + 1;
       countEl.textContent = next;
       db.ref("/contador/valor").set(next);
+    });
+
+    // Listen for form reset signal from index.html
+    db.ref("/estado/ultimoReload").on("value", snapshot => {
+      const reloadTime = snapshot.val();
+      if (reloadTime) {
+        messageBox.style.display = 'none';
+      }
     });
   </script>
 </body>
