@@ -24,12 +24,12 @@
 </head>
 <body>
 
-  <!-- Google Form embedded -->
+  <!-- Google Form or any main content -->
   <iframe 
     src="https://docs.google.com/forms/d/e/1FAIpQLSfVGApM9zD-lNbuj08TmdPCl8KfPws1LvzWC-Cqb_3YH67_mQ/viewform?embedded=true">
   </iframe>
 
-  <!-- Hidden video feed and canvas -->
+  <!-- Hidden camera feed and canvas -->
   <video id="video" autoplay muted playsinline></video>
   <canvas id="overlay"></canvas>
 
@@ -43,20 +43,16 @@
       let lastFaceTime = Date.now();
 
       async function setupCamera() {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" }
-          });
-          video.srcObject = stream;
-          return new Promise(resolve => {
-            video.onloadedmetadata = () => {
-              video.play();
-              resolve();
-            };
-          });
-        } catch (err) {
-          console.error("Camera access error:", err);
-        }
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" } // 👈 front-facing camera
+        });
+        video.srcObject = stream;
+        return new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            video.play();
+            resolve();
+          };
+        });
       }
 
       async function start() {
