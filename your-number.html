@@ -32,7 +32,6 @@
   </div>
 
   <script>
-    // Firebase setup
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
@@ -47,6 +46,11 @@
 
     // Set qrScanned = true on QR page load
     db.ref("/estado/qrScanned").set(true);
+
+    // Increment the number atomically when page loads
+    db.ref("/contador/valor").transaction(current => {
+      return (current || 0) + 1;
+    });
 
     // Listen to number updates
     db.ref("/contador/valor").on("value", snapshot => {
