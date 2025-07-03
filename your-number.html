@@ -1,69 +1,68 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Tu número</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <title>Tu Número</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: white;
-    }
-
-    #number {
-      font-size: 3.5rem;
-      font-weight: bold;
-      color: #333;
-    }
-
     #message {
-      margin-top: 1rem;
+      position: fixed;
+      top: 30px; left: 50%;
+      transform: translateX(-50%);
       background: #28c76f;
       padding: 2rem 3rem;
       border-radius: 15px;
       font-size: 2rem;
       font-weight: bold;
       color: white;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      z-index: 10000;
+      user-select: none;
     }
   </style>
 </head>
 <body>
-  <div id="number">Tu número es: <span id="count">...</span></div>
+
   <div id="message">¡Gracias, envíe el formulario para continuar!</div>
 
+  <div style="text-align:center; margin-top: 200px; font-size: 3rem; font-weight: bold;">
+    Tu número es <span id="number">...</span>
+  </div>
+
   <script>
+    // Firebase setup
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const countEl = document.getElementById('count');
-    const messageBox = document.getElementById('message');
 
-    // Increment counter
-    db.ref("/contador/valor").once("value").then(snapshot => {
-      let current = snapshot.val() || 0;
-      let next = current + 1;
-      countEl.textContent = next;
-      db.ref("/contador/valor").set(next);
+    const messageBox = document.getElementById('message');
+    const numberEl = document.getElementById('number');
+
+    // Show green box immediately
+    messageBox.style.display = 'block';
+
+    // Set qrScanned = true on QR page load
+    db.ref("/estado/qrScanned").set(true);
+
+    // Listen to number updates
+    db.ref("/contador/valor").on("value", snapshot => {
+      const val = snapshot.val();
+      if (val !== null) {
+        numberEl.textContent = val;
+      }
     });
 
-    // Listen for form reset signal from index.html
-    db.ref("/estado/ultimoReload").on("value", snapshot => {
-      const reloadTime = snapshot.val();
-      if (reloadTime) {
+    // Hide green box if qrScanned flag is reset (user left)
+    db.ref("/estado/qrScanned").on("value", snapshot => {
+      if (snapshot.val() === false) {
         messageBox.style.display = 'none';
       }
     });
   </script>
+
 </body>
 </html>
