@@ -9,11 +9,9 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
+      margin: 0; padding: 0; height: 100%; overflow: hidden;
       font-family: sans-serif;
+      position: relative;
     }
 
     iframe {
@@ -34,13 +32,20 @@
       font-size: 2rem;
       font-weight: bold;
       color: white;
-      font-family: sans-serif;
       box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
       z-index: 1000;
       display: none;
     }
 
-    video, canvas {
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    video {
       display: none;
     }
   </style>
@@ -57,7 +62,6 @@
   <canvas id="overlay"></canvas>
 
   <script>
-    // Firebase config
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
@@ -65,11 +69,15 @@
     const db = firebase.database();
 
     const messageBox = document.getElementById('message');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+
     let facePresent = false;
     let lastFaceTime = Date.now();
     let lastValue = null;
 
-    // Show green box when counter increases
+    // Show green box when Firebase counter increments
     db.ref("/contador/valor").on("value", snapshot => {
       const newValue = snapshot.val();
       if (lastValue !== null && newValue !== lastValue) {
@@ -84,7 +92,6 @@
     async function setupCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const video = document.getElementById('video');
         video.srcObject = stream;
         return new Promise(resolve => {
           video.onloadedmetadata = () => {
@@ -102,17 +109,32 @@
       await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
       await setupCamera();
 
-      const video = document.getElementById('video');
+      // Set canvas size to video size
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
       const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
 
       setInterval(async () => {
         const detections = await faceapi.detectAllFaces(video, options);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
         if (detections.length > 0) {
           facePresent = true;
           lastFaceTime = Date.now();
-        } else if (facePresent && Date.now() - lastFaceTime > 2500) {
-          db.ref("/estado/ultimoReload").set(Date.now()); // 👈 Signal reset
-          location.reload();
+
+          // Draw green boxes around detected faces
+          detections.forEach(det => {
+            const box = det.box;
+            ctx.strokeStyle = '#00FF00';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(box.x, box.y, box.width, box.height);
+          });
+        } else {
+          if (facePresent && Date.now() - lastFaceTime > 2500) {
+            db.ref("/estado/ultimoReload").set(Date.now());
+            location.reload();
+          }
         }
       }, 300);
     }
