@@ -90,5 +90,32 @@
     });
   </script>
 
+<!-- QR Code section, hidden by default -->
+<div id="qr-section" style="display:none; text-align:center; margin-top: 30px;">
+  <p>Escanea este código QR para obtener tu número:</p>
+  <img id="qr-code" src="" alt="QR Code" width="250" />
+</div>
+
+<script>
+  // Observe the form to detect confirmation message
+  const observer = new MutationObserver(() => {
+    const confirmation = document.querySelector('.freebirdFormviewerViewResponseConfirmationMessage');
+    if (confirmation) {
+      // Show QR code section
+      document.getElementById('qr-section').style.display = 'block';
+
+      // Set QR code image
+      const qrUrl = "https://gabriel-yazbek.github.io/yazbek.quiosco/your-number.html";
+      const qrImg = document.getElementById('qr-code');
+      qrImg.src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(qrUrl)}`;
+
+      // Optional: Reload after 15 seconds
+      setTimeout(() => location.reload(), 15000);
+    }
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+</script>
+  
 </body>
 </html>
