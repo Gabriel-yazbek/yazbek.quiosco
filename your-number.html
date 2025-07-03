@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Your Number</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+      font-size: 2.5rem;
+      background: #f7f9fc;
+    }
+    #num {
+      font-size: 4rem;
+      color: #3366cc;
+    }
+  </style>
+</head>
+<body>
+  <h1>Your number is:</h1>
+  <div id="num">Loading...</div>
 
+  <script>
+  
+    const firebaseConfig = {
+      databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const numEl = document.getElementById("num");
+
+    db.ref("queue").transaction(current => {
+      return (current || 0) + 1;
+    }).then(result => {
+      if (result.committed) {
+        numEl.textContent = result.snapshot.val();
+      } else {
+        numEl.textContent = "Error";
+      }
+    }).catch(err => {
+      numEl.textContent = "Error loading number.";
+      console.error(err);
+    });
+  </script>
+</body>
+</html>
