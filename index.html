@@ -2,51 +2,29 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Formulario de Quiosco</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario con detección facial</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    html, body {
-      margin: 0; padding: 0; height: 100%; overflow: hidden;
-      font-family: sans-serif;
-      position: relative;
-    }
-
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
-
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; font-family:sans-serif;}
+    iframe { width:100%; height:100%; border:none;}
+    video, canvas { display:none; }
     #message {
-      position: absolute;
-      top: 30px;
-      left: 50%;
+      position: fixed;
+      top: 30px; left: 50%;
       transform: translateX(-50%);
-      background-color: #28c76f;
+      background: #28c76f;
       padding: 2rem 3rem;
       border-radius: 15px;
       font-size: 2rem;
       font-weight: bold;
       color: white;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-      z-index: 1000;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+      z-index: 10000;
       display: none;
-    }
-
-    #overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-      z-index: 999;
-    }
-
-    video {
-      display: none;
+      user-select: none;
     }
   </style>
 </head>
@@ -54,65 +32,62 @@
 
   <div id="message">¡Gracias, envíe el formulario para continuar!</div>
 
-  <iframe
-    src="https://docs.google.com/forms/d/e/1FAIpQLSfVGApM9zD-lNbuj08TmdPCl8KfPws1LvzWC-Cqb_3YH67_mQ/viewform?embedded=true">
-  </iframe>
+  <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSfVGApM9zD-lNbuj08TmdPCl8KfPws1LvzWC-Cqb_3YH67_mQ/viewform?embedded=true"></iframe>
 
   <video id="video" autoplay muted playsinline></video>
   <canvas id="overlay"></canvas>
 
   <script>
+    // Firebase setup
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const messageBox = document.getElementById('message');
     const video = document.getElementById('video');
     const canvas = document.getElementById('overlay');
     const ctx = canvas.getContext('2d');
+    const messageBox = document.getElementById('message');
 
     let facePresent = false;
     let lastFaceTime = Date.now();
-    let lastValue = null;
+    let qrScanned = false;
 
-    // Show green box when Firebase counter increments
-    db.ref("/contador/valor").on("value", snapshot => {
-      const newValue = snapshot.val();
-      if (lastValue !== null && newValue !== lastValue) {
+    // Listen to qrScanned flag, show/hide green box accordingly
+    db.ref("/estado/qrScanned").on("value", snapshot => {
+      qrScanned = snapshot.val() === true;
+      if (qrScanned) {
         messageBox.style.display = 'block';
-        setTimeout(() => {
-          messageBox.style.display = 'none';
-        }, 10000);
+      } else {
+        messageBox.style.display = 'none';
       }
-      lastValue = newValue;
     });
 
     async function setupCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        video.srcObject = stream;
-        return new Promise(resolve => {
-          video.onloadedmetadata = () => {
-            video.play();
-            resolve();
-          };
-        });
-      } catch (err) {
-        alert("No se pudo activar la cámara. Verifique los permisos.");
-        console.error("Camera error:", err);
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      video.srcObject = stream;
+      return new Promise(resolve => {
+        video.onloadedmetadata = () => {
+          video.play();
+          resolve();
+        };
+      });
     }
 
-    async function startFaceDetection() {
-      await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+    async function start() {
       await setupCamera();
 
-      // Set canvas size to video size
+      const MODEL_URL = 'https://justadudewhohacks.github.io/face-api.js/models';
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
 
+      detectFaceLoop();
+    }
+
+    async function detectFaceLoop() {
       const options = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
 
       setInterval(async () => {
@@ -122,24 +97,21 @@
         if (detections.length > 0) {
           facePresent = true;
           lastFaceTime = Date.now();
-
-          // Draw green boxes around detected faces
-          detections.forEach(det => {
-            const box = det.box;
-            ctx.strokeStyle = '#00FF00';
-            ctx.lineWidth = 3;
-            ctx.strokeRect(box.x, box.y, box.width, box.height);
-          });
         } else {
           if (facePresent && Date.now() - lastFaceTime > 2500) {
-            db.ref("/estado/ultimoReload").set(Date.now());
+            facePresent = false;
+            // Reset qrScanned flag and reload page when user leaves
+            if(qrScanned) {
+              db.ref("/estado/qrScanned").set(false);
+            }
             location.reload();
           }
         }
       }, 300);
     }
 
-    startFaceDetection();
+    start();
   </script>
+
 </body>
 </html>
