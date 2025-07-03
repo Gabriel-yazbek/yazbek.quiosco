@@ -1,20 +1,53 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>Admin - Set Number</title>
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.11/firebase-database-compat.js"></script>
+  <meta charset="UTF-8" />
+  <title>Admin - Ajustar Número</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <style>
-    body { font-family: sans-serif; padding: 2rem; max-width: 400px; margin: auto; }
-    input, button { font-size: 1.2rem; margin-top: 1rem; width: 100%; }
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 400px;
+      margin: auto;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    input, button {
+      font-size: 1.2rem;
+      margin-top: 1rem;
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #28c76f;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #22b85f;
+    }
+    p {
+      font-size: 1.1rem;
+    }
   </style>
 </head>
 <body>
-  <h2>🔐 Admin: Set Counter</h2>
-  <p>Current value: <span id="current">loading...</span></p>
+  <h2>🔐 Admin: Ajustar el Contador</h2>
+  <p>Valor actual: <span id="current">cargando...</span></p>
 
-  <input id="newVal" type="number" placeholder="pon un nuevo valor" />
-  <button onclick="setValue()">Set Counter</button>
+  <input id="newVal" type="number" placeholder="Introduce un nuevo valor" />
+  <button onclick="setValue()">Actualizar contador</button>
 
   <script>
     const firebaseConfig = {
@@ -25,20 +58,28 @@
     const db = firebase.database();
     const current = document.getElementById('current');
 
-    db.ref("queue").on("value", snapshot => {
-      current.textContent = snapshot.val();
+    // Escuchar valor actual en la base de datos
+    db.ref("contador/valor").on("value", snapshot => {
+      const val = snapshot.val();
+      current.textContent = val !== null ? val : '0';
     });
 
+    // Función para actualizar el contador
     function setValue() {
       const newVal = parseInt(document.getElementById("newVal").value);
       if (!isNaN(newVal)) {
-        db.ref("queue").set(newVal);
-        alert("Counter updated to " + newVal);
+        db.ref("contador/valor").set(newVal)
+          .then(() => {
+            alert("Contador actualizado a " + newVal);
+            document.getElementById("newVal").value = '';
+          })
+          .catch(error => {
+            alert("Error al actualizar el contador: " + error.message);
+          });
       } else {
-        alert("Please enter a valid number.");
+        alert("Por favor, introduce un número válido.");
       }
     }
   </script>
 </body>
 </html>
-
