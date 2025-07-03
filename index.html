@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Formulario de Quiosco</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
@@ -25,15 +25,17 @@
 
     #message {
       position: absolute;
-      top: 20px;
+      top: 30px;
       left: 50%;
       transform: translateX(-50%);
-      background-color: #a0f0a0;
-      padding: 1rem 2rem;
-      border-radius: 10px;
-      font-size: 1.2rem;
+      background-color: #28c76f;
+      padding: 2rem 3rem;
+      border-radius: 15px;
+      font-size: 2rem;
+      font-weight: bold;
+      color: white;
       font-family: sans-serif;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
       z-index: 1000;
       display: none;
     }
@@ -55,15 +57,19 @@
   <canvas id="overlay"></canvas>
 
   <script>
-    const messageBox = document.getElementById('message');
+    // Firebase config
     const firebaseConfig = {
       databaseURL: "https://contador-e693c-default-rtdb.firebaseio.com/"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ✅ Watch for counter changes and show message
+    const messageBox = document.getElementById('message');
+    let facePresent = false;
+    let lastFaceTime = Date.now();
     let lastValue = null;
+
+    // Show green box when counter increases
     db.ref("/contador/valor").on("value", snapshot => {
       const newValue = snapshot.val();
       if (lastValue !== null && newValue !== lastValue) {
@@ -75,20 +81,21 @@
       lastValue = newValue;
     });
 
-    // ✅ Face detection for reload
-    let facePresent = false;
-    let lastFaceTime = Date.now();
-
     async function setupCamera() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      const video = document.getElementById('video');
-      video.srcObject = stream;
-      return new Promise(resolve => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve();
-        };
-      });
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+        return new Promise(resolve => {
+          video.onloadedmetadata = () => {
+            video.play();
+            resolve();
+          };
+        });
+      } catch (err) {
+        alert("No se pudo activar la cámara. Verifique los permisos.");
+        console.error("Camera error:", err);
+      }
     }
 
     async function startFaceDetection() {
@@ -104,6 +111,7 @@
           facePresent = true;
           lastFaceTime = Date.now();
         } else if (facePresent && Date.now() - lastFaceTime > 2500) {
+          db.ref("/estado/ultimoReload").set(Date.now()); // 👈 Signal reset
           location.reload();
         }
       }, 300);
